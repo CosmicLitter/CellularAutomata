@@ -18,14 +18,18 @@
 == Development Globals                                                        ==
 ================================================================================
 */
+// Grid
+const int CELL_SIZE = 10;
+const int GRID_WIDTH = 128;
+const int GRID_HEIGHT = 72;
 
 // Window dimensions
-const int SCREEN_WIDTH = 1280;
-const int SCREEN_HEIGHT = 720;
+const int SCREEN_WIDTH = (GRID_WIDTH * CELL_SIZE) + 1;
+const int SCREEN_HEIGHT =(GRID_HEIGHT * CELL_SIZE) + 1;
 
 // Framerate control
 using Ticks = uint64_t;
-const int FPS = 144;
+const int FPS = 60;
 const Ticks TICKS_PER_SECOND = 1000;
 
 /*
@@ -45,7 +49,6 @@ int main(int argc, char *argv[]) {
   // Initialize SDL window & renderer
   SDL_Window *window = nullptr;
   SDL_Renderer *renderer = nullptr;
-  // SDL_Surface *surface = nullptr;
 
   if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER) < 0) {
     Logger::Crit("Failed to initialize SDL.", Logger::CheckSDLError);
@@ -92,8 +95,18 @@ int main(int argc, char *argv[]) {
 
   // Example ImGui windows
   bool show_demo_window = true;
-  bool show_another_window = true;
-  ImVec4 clear_color = ImVec4(0.90f, 0.90f, 0.90f, 1.00f);
+  bool show_another_window = false;
+
+  // ImGui managed state
+  ImVec4 grid_background_color = ImVec4(0.08f, 0.08f, 0.08f, 1.00f);
+  ImVec4 grid_line_color = ImVec4(0.04f, 0.04f, 0.04f, 1.00f);
+  ImVec4 grid_cursor_color = ImVec4(0.12f, 0.12f, 0.12f, 1.00f);
+  // ImVec4 cell_selected_color = ImVec4(0.9f, 0.9f, 0.9f, 1.00f);
+
+  // Grid cursor starts in center of screen
+  SDL_Rect grid_cursor = {(GRID_WIDTH - 1) / 2 * CELL_SIZE + 1,
+                          (GRID_HEIGHT - 1) / 2 * CELL_SIZE + 1, CELL_SIZE -1,
+                          CELL_SIZE -1};
 
   // Main loop
   using namespace std::chrono;
@@ -129,21 +142,26 @@ int main(int argc, char *argv[]) {
 
     // A custom ImGui window
     {
-      static float f = 0.0f;
-      static int counter = 0;
+      // static float f = 0.0f;
+      // static int counter = 0;
       ImGui::Begin("Hello, world!");
 
-      ImGui::Text("Here is some text.");
+      ImGui::Text("Basic Config");
       ImGui::Checkbox("Demo Window", &show_demo_window);
-      ImGui::Checkbox("Another Window", &show_another_window);
+      // ImGui::Checkbox("Another Window", &show_another_window);
 
-      ImGui::SliderFloat("float", &f, 0.0f, 1.0f);
-      ImGui::ColorEdit3("clear color", (float *)&clear_color);
+      // ImGui::SliderFloat("float", &f, 0.0f, 1.0f);
+      ImGui::ColorEdit3("grid background color",
+                        (float *)&grid_background_color);
+      ImGui::ColorEdit3("grid line color", (float *)&grid_line_color);
+      ImGui::ColorEdit3("cell cursor color", (float *)&grid_cursor_color);
+      // ImGui::ColorEdit3("cell selected color", (float
+      // *)&cell_selected_color);
 
-      if (ImGui::Button("Count"))
-        counter++;
-      ImGui::SameLine();
-      ImGui::Text("Counter = %d", counter);
+      // if (ImGui::Button("Count"))
+      //   counter++;
+      // ImGui::SameLine();
+      // ImGui::Text("Counter = %d", counter);
 
       ImGui::Text("Application average %.3f ms/frame (%.1f FPS)",
                   1000.0f / io.Framerate, io.Framerate);
@@ -164,10 +182,34 @@ int main(int argc, char *argv[]) {
     SDL_RenderSetScale(renderer, io.DisplayFramebufferScale.x,
                        io.DisplayFramebufferScale.y);
 
-    SDL_SetRenderDrawColor(
-        renderer, (Uint8)(clear_color.x * 255), (Uint8)(clear_color.y * 255),
-        (Uint8)(clear_color.z * 255), (Uint8)(clear_color.w * 255));
+    SDL_SetRenderDrawColor(renderer, (Uint8)(grid_background_color.x * 255),
+                           (Uint8)(grid_background_color.y * 255),
+                           (Uint8)(grid_background_color.z * 255),
+                           (Uint8)(grid_background_color.w * 255));
+
     SDL_RenderClear(renderer);
+
+    // Grid Lines
+    SDL_SetRenderDrawColor(renderer, (Uint8)(grid_line_color.x * 255),
+                           (Uint8)(grid_line_color.y * 255),
+                           (Uint8)(grid_line_color.z * 255),
+                           (Uint8)(grid_line_color.w * 255));
+
+    for (int x = 0; x < 1 + GRID_WIDTH * CELL_SIZE; x += CELL_SIZE) {
+      SDL_RenderDrawLine(renderer, x, 0, x, SCREEN_HEIGHT - 1);
+    }
+
+    for (int y = 0; y < 1 + GRID_HEIGHT * CELL_SIZE; y += CELL_SIZE) {
+      SDL_RenderDrawLine(renderer, 0, y, SCREEN_WIDTH - 1, y);
+    }
+
+    // Draw cursor
+    SDL_SetRenderDrawColor(renderer, (Uint8)(grid_cursor_color.x * 255),
+                           (Uint8)(grid_cursor_color.y * 255),
+                           (Uint8)(grid_cursor_color.z * 255),
+                           (Uint8)(grid_cursor_color.w * 255));
+    SDL_RenderFillRect(renderer, &grid_cursor);
+
     ImGui_ImplSDLRenderer2_RenderDrawData(ImGui::GetDrawData(), renderer);
     SDL_RenderPresent(renderer);
 
