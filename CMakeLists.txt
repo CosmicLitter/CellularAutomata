@@ -46,6 +46,11 @@ add_executable(Automata ${SOURCE_FILES})
 file(GLOB IMGUI_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/libs/imgui/*.cpp)
 add_library(imgui STATIC ${IMGUI_SOURCES})
 
+# Include SDL2 directories in ImGui
+target_include_directories(imgui PRIVATE
+  ${SDL2_INCLUDE_DIRS}
+)
+
 target_include_directories(Automata PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/src
   ${SDL2_INCLUDE_DIRS}
