@@ -19,18 +19,18 @@
 ================================================================================
 */
 // Grid
-const int CELL_SIZE = 10;
-const int GRID_WIDTH = 128;
-const int GRID_HEIGHT = 72;
+const int CELL_SIZE     = 10;
+const int GRID_WIDTH    = 128;
+const int GRID_HEIGHT   = 72;
 
 // Window dimensions
-const int SCREEN_WIDTH = (GRID_WIDTH * CELL_SIZE) + 1;
-const int SCREEN_HEIGHT =(GRID_HEIGHT * CELL_SIZE) + 1;
+const int SCREEN_WIDTH    = (GRID_WIDTH * CELL_SIZE) + 1;
+const int SCREEN_HEIGHT   = (GRID_HEIGHT * CELL_SIZE) + 1;
 
 // Framerate control
-using Ticks = uint64_t;
-const int FPS = 60;
-const Ticks TICKS_PER_SECOND = 1000;
+using Ticks                   = uint64_t;
+const int FPS                 = 60;
+const Ticks TICKS_PER_SECOND  = 1000;
 
 /*
 ================================================================================
@@ -47,27 +47,25 @@ int main(int argc, char *argv[]) {
   }
 
   // Initialize SDL window & renderer
-  SDL_Window *window = nullptr;
-  SDL_Renderer *renderer = nullptr;
+  SDL_Window *window      = nullptr;
+  SDL_Renderer *renderer  = nullptr;
 
   if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER) < 0) {
     Logger::Crit("Failed to initialize SDL.", Logger::CheckSDLError);
     return -1;
   }
 
-  SDL_SetHint(SDL_HINT_IME_SHOW_UI, "1");
+  // Unsure if this would be useful. IME stands for input method editor, and this hint enables the input of special characters when entering text
+  // SDL_SetHint(SDL_HINT_IME_SHOW_UI, "1");
 
   const char *WINDOW_TITLE = "Cellular Automata";
-  window = SDL_CreateWindow(WINDOW_TITLE, SDL_WINDOWPOS_CENTERED,
-                            SDL_WINDOWPOS_CENTERED, SCREEN_WIDTH, SCREEN_HEIGHT,
-                            SDL_WINDOW_SHOWN);
+  window = SDL_CreateWindow(WINDOW_TITLE, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
   if (window == nullptr) {
     Logger::Crit("Failed to create window.", Logger::CheckSDLError);
     return -1;
   }
 
-  renderer = SDL_CreateRenderer(
-      window, -1, SDL_RENDERER_PRESENTVSYNC | SDL_RENDERER_ACCELERATED);
+  renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_PRESENTVSYNC | SDL_RENDERER_ACCELERATED);
   if (renderer == nullptr) {
     Logger::Crit("Failed to create renderer.", Logger::CheckSDLError);
     return -1;
@@ -94,19 +92,17 @@ int main(int argc, char *argv[]) {
   ImGui_ImplSDLRenderer2_Init(renderer);
 
   // Example ImGui windows
-  bool show_demo_window = true;
-  bool show_another_window = false;
+  bool show_demo_window     = false;
+  bool show_another_window  = false;
 
   // ImGui managed state
-  ImVec4 grid_background_color = ImVec4(0.08f, 0.08f, 0.08f, 1.00f);
-  ImVec4 grid_line_color = ImVec4(0.04f, 0.04f, 0.04f, 1.00f);
-  ImVec4 grid_cursor_color = ImVec4(0.12f, 0.12f, 0.12f, 1.00f);
-  // ImVec4 cell_selected_color = ImVec4(0.9f, 0.9f, 0.9f, 1.00f);
+  ImVec4 grid_background_color    = ImVec4(0.08f, 0.08f, 0.08f, 1.00f);
+  ImVec4 grid_line_color          = ImVec4(0.04f, 0.04f, 0.04f, 1.00f);
+  ImVec4 grid_cursor_color        = ImVec4(0.12f, 0.12f, 0.12f, 1.00f);
+  // ImVec4 cell_selected_color   = ImVec4(0.9f, 0.9f, 0.9f, 1.00f);
 
   // Grid cursor starts in center of screen
-  SDL_Rect grid_cursor = {(GRID_WIDTH - 1) / 2 * CELL_SIZE + 1,
-                          (GRID_HEIGHT - 1) / 2 * CELL_SIZE + 1, CELL_SIZE -1,
-                          CELL_SIZE -1};
+  SDL_Rect grid_cursor = {(GRID_WIDTH - 1) / 2 * CELL_SIZE + 1, (GRID_HEIGHT - 1) / 2 * CELL_SIZE + 1, CELL_SIZE -1, CELL_SIZE -1};
 
   // Main loop
   using namespace std::chrono;
@@ -119,14 +115,25 @@ int main(int argc, char *argv[]) {
     SDL_Event event;
     while (SDL_PollEvent(&event) != 0) {
       ImGui_ImplSDL2_ProcessEvent(&event);
-      if (event.type == SDL_QUIT) {
-        Logger::Info("SDL_QUIT message received");
-        is_running = false;
-      }
-      if (event.type == SDL_WINDOWEVENT &&
-          event.window.event == SDL_WINDOWEVENT_CLOSE &&
-          event.window.windowID == SDL_GetWindowID(window)) {
-        is_running = false;
+      switch (event.type) {
+        case SDL_QUIT: {
+          Logger::Info("SDL_QUIT message received");
+          is_running = false;
+        } break;
+        case SDL_KEYDOWN: {
+          switch (event.key.keysym.sym) {
+            case SDLK_ESCAPE: {
+              Logger::Info("Escape key pressed. Exiting");
+              is_running = false;
+            } break;
+            default: {
+              Logger::Info("Key press: " + std::to_string(event.key.keysym.scancode));
+            }
+          }
+        } break;
+        default: {
+          Logger::Info("Event: " + std::to_string(event.type));
+        }
       }
     }
 
@@ -179,21 +186,14 @@ int main(int argc, char *argv[]) {
 
     // Render
     ImGui::Render();
-    SDL_RenderSetScale(renderer, io.DisplayFramebufferScale.x,
-                       io.DisplayFramebufferScale.y);
+    SDL_RenderSetScale(renderer, io.DisplayFramebufferScale.x, io.DisplayFramebufferScale.y);
 
-    SDL_SetRenderDrawColor(renderer, (Uint8)(grid_background_color.x * 255),
-                           (Uint8)(grid_background_color.y * 255),
-                           (Uint8)(grid_background_color.z * 255),
-                           (Uint8)(grid_background_color.w * 255));
+    SDL_SetRenderDrawColor(renderer, (Uint8)(grid_background_color.x * 255), (Uint8)(grid_background_color.y * 255), (Uint8)(grid_background_color.z * 255), (Uint8)(grid_background_color.w * 255));
 
     SDL_RenderClear(renderer);
 
     // Grid Lines
-    SDL_SetRenderDrawColor(renderer, (Uint8)(grid_line_color.x * 255),
-                           (Uint8)(grid_line_color.y * 255),
-                           (Uint8)(grid_line_color.z * 255),
-                           (Uint8)(grid_line_color.w * 255));
+    SDL_SetRenderDrawColor(renderer, (Uint8)(grid_line_color.x * 255), (Uint8)(grid_line_color.y * 255), (Uint8)(grid_line_color.z * 255), (Uint8)(grid_line_color.w * 255));
 
     for (int x = 0; x < 1 + GRID_WIDTH * CELL_SIZE; x += CELL_SIZE) {
       SDL_RenderDrawLine(renderer, x, 0, x, SCREEN_HEIGHT - 1);
@@ -204,10 +204,7 @@ int main(int argc, char *argv[]) {
     }
 
     // Draw cursor
-    SDL_SetRenderDrawColor(renderer, (Uint8)(grid_cursor_color.x * 255),
-                           (Uint8)(grid_cursor_color.y * 255),
-                           (Uint8)(grid_cursor_color.z * 255),
-                           (Uint8)(grid_cursor_color.w * 255));
+    SDL_SetRenderDrawColor(renderer, (Uint8)(grid_cursor_color.x * 255), (Uint8)(grid_cursor_color.y * 255), (Uint8)(grid_cursor_color.z * 255), (Uint8)(grid_cursor_color.w * 255));
     SDL_RenderFillRect(renderer, &grid_cursor);
 
     ImGui_ImplSDLRenderer2_RenderDrawData(ImGui::GetDrawData(), renderer);
